@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Babble editor mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Tiny5&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#090A14}
+*{box-sizing:border-box}
+a{color:#A4DDDB}a:hover{color:#EBEDE9}
+.app{min-height:100vh;display:flex;flex-direction:column;background:#090A14;color:#C7CFCC;font-family:Tiny5,monospace;font-size:18px;line-height:1.15}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 8px;background:#151D28;border-bottom:2px solid #000}
+.brand{font-family:"Press Start 2P",monospace;font-size:12px;color:#E8C170;margin-right:8px}
+.spacer{flex:1}
+.work{flex:1;display:grid;gap:4px;padding:4px;min-height:0}
+.dir-a .work{grid-template-columns:230px minmax(0,1fr) 350px;grid-template-rows:minmax(0,1fr) 240px;grid-template-areas:"lib stage insp" "lib time insp"}
+.dir-b .work{grid-template-columns:210px minmax(0,1fr) 350px;grid-template-rows:330px minmax(0,1fr);grid-template-areas:"time time time" "lib stage insp"}
+.dir-c .work{grid-template-columns:minmax(0,1fr) 350px;grid-template-rows:auto minmax(0,1fr) 200px;grid-template-areas:"lib insp" "stage insp" "time insp"}
+.panel{background:#10141F;border:2px solid #000;display:flex;flex-direction:column;min-width:0;min-height:0}
+.head{font-family:"Press Start 2P",monospace;font-size:9px;color:#A4DDDB;background:#151D28;padding:7px 8px;border-bottom:2px solid #000;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.body{padding:8px;overflow:auto;flex:1;min-height:0}
+.lib{grid-area:lib}.stage{grid-area:stage}.time{grid-area:time}.insp{grid-area:insp}
+.btn{font:inherit;color:#EBEDE9;background:#394A50;border:2px solid #000;border-bottom-width:4px;padding:3px 10px;min-height:32px;cursor:pointer}
+.btn:hover{background:#4F8FBA}
+.btn:active{border-bottom-width:2px;margin-top:2px}
+.btn:focus-visible,input:focus-visible,.voice:focus-visible{outline:2px solid #E8C170;outline-offset:1px}
+.btn.on,.btn.go{background:#DE9E41;color:#090A14}
+.btn.go:hover,.btn.on:hover{background:#E8C170}
+.pills{display:flex;flex-wrap:wrap;gap:4px}
+.voices{display:flex;flex-direction:column;gap:4px}
+.voice{font:inherit;color:inherit;text-align:left;display:flex;gap:8px;align-items:center;width:100%;background:#151D28;border:2px solid #000;padding:4px;cursor:pointer}
+.voice:hover{background:#394A50}
+.voice.on{background:#394A50;box-shadow:inset 0 0 0 2px #E8C170}
+.voice svg{width:48px;height:48px;flex:none}
+.voice b{display:block;font-weight:400;color:#EBEDE9}
+.voice small{font-size:16px;color:#819796}
+.dir-c .voices{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+.dir-c .voice{flex-direction:column;text-align:center}
+.dir-c .voice svg{width:96px;height:96px}
+.px{shape-rendering:crispEdges;display:block}
+.chat{display:flex;flex-direction:column-reverse;gap:10px;padding:12px;background:#151D28}
+.empty{color:#819796;text-align:center;margin:auto}
+.msg{display:flex;gap:8px;align-items:flex-end;max-width:min(560px,92%)}
+.msg.mine{align-self:flex-end;flex-direction:row-reverse}
+.msg svg{width:64px;height:64px;flex:none}
+.who{font-size:16px;color:#819796;margin-bottom:2px}
+.mine .who{text-align:right}
+.bubble{background:#090A14;border:2px solid #000;border-bottom-width:4px;padding:6px 10px;font-size:22px;color:#EBEDE9;white-space:pre-wrap;min-height:38px;min-width:64px}
+.mine .bubble{background:#394A50}
+.bubble.live{border-color:#E8C170}
+.ghost{color:#394A50}
+.mine .ghost{color:#819796}
+.dots{display:flex;gap:4px;align-items:center;height:22px}
+.dots i{width:6px;height:6px;background:#E8C170;animation:hop .9s steps(3) infinite}
+.dots i:nth-child(2){animation-delay:.15s}
+.dots i:nth-child(3){animation-delay:.3s}
+@keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@media (prefers-reduced-motion:reduce){.dots i{animation:none}}
+.k-key{color:#E8C170}.k-str{color:#A4DDDB}.k-type{color:#4F8FBA}.k-fn{color:#EBEDE9}.k-num{color:#DE9E41}.k-com{color:#819796}.k-prop{color:#E8C170}
+.say{display:flex;flex-wrap:wrap;gap:4px;padding:8px;border-top:2px solid #000}
+.say input{flex:1 1 220px;min-width:0;font:inherit;background:#090A14;color:#EBEDE9;border:2px solid #000;padding:4px 8px;min-height:32px}
+.event{font-size:16px;color:#A4DDDB;padding:4px 8px 8px}
+.lanes{display:flex;gap:1px;min-width:max-content;height:100%;min-height:160px}
+.col{width:22px;position:relative;display:flex;flex-direction:column;background:#151D28}
+.col.now{background:#394A50}
+.pitch{flex:1;position:relative;min-height:80px}
+.dot{position:absolute;left:7px;width:8px;height:8px;background:#E8C170}
+.char{text-align:center;color:#EBEDE9;height:24px}
+.shape{text-align:center;color:#A4DDDB;height:22px;font-size:16px}
+.tabs{display:flex;background:#151D28;border-bottom:2px solid #000}
+.tab{flex:1;font:inherit;color:#C7CFCC;background:#151D28;border:0;border-right:2px solid #000;min-height:36px;cursor:pointer}
+.tab:hover{color:#EBEDE9;background:#394A50}
+.tab.on{background:#10141F;color:#E8C170}
+.tab:focus-visible{outline:2px solid #E8C170;outline-offset:-2px}
+.sect{margin-bottom:14px}
+.sect h3{font-family:"Press Start 2P",monospace;font-weight:400;font-size:9px;color:#E8C170;margin:0 0 6px}
+.note{font-size:16px;color:#819796;margin:6px 0 0}
+.row{display:grid;grid-template-columns:96px minmax(0,1fr) 44px;gap:6px;align-items:center;min-height:28px}
+.fx{display:grid;grid-template-columns:96px minmax(0,1fr);gap:6px;align-items:center;margin-bottom:4px}
+.fx .btn{padding:2px 4px}
+.row b,.fx b{font-weight:400;color:#EBEDE9;text-align:right}
+input[type=range]{width:100%;accent-color:#DE9E41;min-width:0;height:24px}
+pre{margin:0;background:#090A14;border:2px solid #000;padding:8px;color:#C7CFCC;font-family:Tiny5,monospace;font-size:16px;overflow:auto;white-space:pre}
+.status{display:flex;flex-wrap:wrap;gap:16px;padding:4px 8px;background:#151D28;border-top:2px solid #000;font-size:16px;color:#819796}
+@media (pointer:coarse){.btn,.tab,.say input{min-height:44px}}
+@media (max-width:900px){.work,.dir-a .work,.dir-b .work,.dir-c .work{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;grid-template-areas:"stage" "lib" "time" "insp"}.time .body{min-height:200px}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/preact/standalone.umd.js"></script>
+</head>
+<body>
+<script>
+const { html, render, Component: Base } = htmPreact;
+const DCLogic = Base;
+
+const C = { ink:'#090A14', dark:'#151D28', lift:'#394A50', shine:'#819796', white:'#EBEDE9', aqua:'#A4DDDB', teal:'#4F8FBA', gold:'#DE9E41', sun:'#E8C170', red:'#A53030' };
+const RULES = [
+  ['pitch','Pitch',0.25,4,0.01],['speed','Speed',4,40,0.5],['pitch_range','Pitch range',0,24,0.5],['vowel_lift','Vowel lift',-12,12,0.5],
+  ['question_rise','Question rise',-12,12,0.5],['jitter','Jitter',0,6,0.1],['blip_every','Blip every',1,4,1],
+  ['space_pause','Space pause',0,1,0.01],['comma_pause','Comma pause',0,2,0.01],['stop_pause','Stop pause',0,3,0.01]
+];
+const FX = [['formant','Formant'],['ring','Ring mod'],['crush','Bitcrush'],['drive','Drive'],['comb','Comb']];
+const LINE = [['dry','Dry'],['underwater','Underwater'],['radio','Radio'],['cave','Cave'],['echo','Echo']];
+const WAVES = [['triangle','Triangle'],['square','Square'],['sawtooth','Saw'],['sine','Sine'],['noise','Noise']];
+const FORMANTS = { A:[800,1200], E:[400,2200], O:[450,800], M:[300,900], C:[500,1500] };
+const voice = (id, name, tag, wave, rules, fx, line, art) => ({ id, name, tag, wave, fx, line, art, rules: Object.assign({ pitch:1, speed:18, pitch_range:6, vowel_lift:2, question_rise:4, jitter:1, blip_every:2, space_pause:0.04, comma_pause:0.18, stop_pause:0.32 }, rules) });
+const none = { formant:0, ring:0, crush:0, drive:0, comb:0 };
+const START = () => [
+  voice('chirpy','Chirpy','Bird, bright','triangle',{ pitch:1.7, speed:20, pitch_range:9, vowel_lift:4, question_rise:5 },Object.assign({},none),'dry',{ bg:C.teal, body:C.sun, parts:[[4,4,8,10,C.sun],[3,5,10,8,C.sun],[7,2,2,2,C.gold]], eyes:[[5,7,2,2],[9,7,2,2]] }),
+  voice('gruff','Gruff','Bear, low','sawtooth',{ pitch:0.6, speed:13, pitch_range:4, vowel_lift:1, question_rise:2 },Object.assign({},none,{ drive:0.6 }),'dry',{ bg:C.lift, body:C.red, parts:[[2,3,3,3,C.red],[11,3,3,3,C.red],[3,5,10,9,C.red]], eyes:[[5,7,2,1],[9,7,2,1]] }),
+  voice('robot','Robot','Vowel talkbox','sawtooth',{ pitch:0.9, speed:15, pitch_range:2, vowel_lift:0, jitter:0, blip_every:1, question_rise:3 },Object.assign({},none,{ formant:0.8, ring:0.25 }),'dry',{ bg:C.dark, body:C.shine, parts:[[7,1,2,2,C.gold],[7,3,2,1,C.lift],[3,4,10,10,C.shine],[1,7,2,3,C.lift],[13,7,2,3,C.lift]], eyes:[[4,6,3,3],[9,6,3,3]], eye:C.aqua }),
+  voice('floppy','Floppy','Dog, loose','sine',{ pitch:1.1, speed:18, pitch_range:14, vowel_lift:6, jitter:3, blip_every:3 },Object.assign({},none,{ comb:0.4 }),'dry',{ bg:C.gold, body:C.white, parts:[[4,3,8,11,C.white],[2,4,2,7,C.lift],[12,4,2,7,C.lift]], eyes:[[5,6,2,2],[9,6,2,2]] }),
+  voice('bubbles','Bubbles','Fish, underwater','triangle',{ pitch:1.3, speed:14, pitch_range:8, vowel_lift:3, jitter:2 },Object.assign({},none,{ comb:0.25 }),'underwater',{ bg:C.dark, body:C.teal, parts:[[3,4,10,10,C.teal],[2,6,12,6,C.teal],[0,7,2,3,C.aqua],[14,7,2,3,C.aqua],[7,2,2,2,C.aqua]], eyes:[[4,6,2,3],[10,6,2,3]], eye:C.white })
+];
+const MOUTH = { rest:[[6,11,4,1]], M:[[5,11,6,1]], C:[[6,10,4,2]], E:[[5,10,6,2]], O:[[6,10,4,3]], A:[[5,10,6,3]] };
+const SCENE = [
+  ['robot', 'Hello! Are you sure about this, captain?'],
+  ['bubbles', 'Blub. The water is rising.'],
+  ['gruff', 'Then we swim.'],
+  ['chirpy', 'Swim? I am a bird!'],
+  ['floppy', 'I will fetch a boat!'],
+  ['robot', 'Boat not found.']
+];
+const REPLIES = { chirpy: 'Ooh! Tell me more!', gruff: 'Hmph. Fine.', robot: 'Input received.', floppy: 'Yes! Yes! Again!', bubbles: 'Blub blub?' };
+const GD = /(#.*)|("(?:[^"\\]|\\.)*")|\b(var|func|await|if|return)\b|\b([A-Z]\w*)\b|\b(\w+)(?=\()|\b(\d+(?:\.\d+)?)\b/g;
+const JS = /("(?:[^"\\]|\\.)*")(\s*:)?|\b(-?\d+(?:\.\d+)?|true|false|null)\b/g;
+const tokens = (text, re, classify) => {
+  const out = [];
+  let last = 0;
+  text.replace(re, function (match) {
+    const at = arguments[arguments.length - 2];
+    if (at > last) out.push({ t: text.slice(last, at), cls: '' });
+    out.push({ t: match, cls: classify(arguments) });
+    last = at + match.length;
+    return match;
+  });
+  if (last < text.length) out.push({ t: text.slice(last), cls: '' });
+  return out;
+};
+const gdTokens = (text) => tokens(text, GD, (m) => m[1] ? 'k-com' : m[2] ? 'k-str' : m[3] ? 'k-key' : m[4] ? 'k-type' : m[5] ? 'k-fn' : 'k-num');
+const jsonTokens = (text) => tokens(text, JS, (m) => m[1] ? (m[2] ? 'k-prop' : 'k-str') : 'k-num');
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const lerpExp = (a, b, t) => a * Math.pow(b / a, t);
+const rect = (r) => 'M' + r[0] + ' ' + r[1] + 'h' + r[2] + 'v' + r[3] + 'h-' + r[2] + 'z';
+
+function layers(art, shape, blink) {
+  const out = [{ fill: art.bg, d: 'M1 0h14v1h1v14h-1v1h-14v-1h-1v-14h1z' }];
+  art.parts.forEach((p) => out.push({ fill: p[4], d: rect(p) }));
+  const eyes = art.eyes.map((e) => blink ? [e[0], e[1] + e[3] - 1, e[2], 1] : e);
+  out.push({ fill: art.eye || C.ink, d: eyes.map(rect).join('') });
+  out.push({ fill: C.ink, d: MOUTH[shape].map(rect).join('') });
+  if (shape === 'A') out.push({ fill: C.red, d: rect([6, 12, 4, 1]) });
+  return out;
+}
+
+function shapeOf(c) {
+  if ('a'.includes(c)) return 'A';
+  if ('eiy'.includes(c)) return 'E';
+  if ('ou'.includes(c)) return 'O';
+  if ('mbpf'.includes(c)) return 'M';
+  return 'C';
+}
+
+function hash(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+
+function rng(seed) {
+  return () => {
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function questionLetters(text) {
+  const rise = {};
+  let i = text.indexOf('?');
+  while (i >= 0) {
+    let start = i - 1;
+    while (start >= 0 && ' ?'.includes(text[start])) start--;
+    const end = start;
+    while (start > 0 && text[start - 1] !== ' ') start--;
+    for (let j = start; j <= end; j++) rise[j] = (j - start + 1) / (end - start + 1);
+    i = text.indexOf('?', i + 1);
+  }
+  return rise;
+}
+
+function plan(v, text) {
+  const r = v.rules, step = 1 / r.speed, rand = rng(hash(v.id + text)), rise = questionLetters(text), letters = [];
+  let at = 0, spoken = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], low = c.toLowerCase(), e = { i, c, t: at, blip: false, st: 0, shape: '' };
+    if (c === ' ') at += r.space_pause + step * 0.5;
+    else if (c === ',') at += r.comma_pause;
+    else if ('.!?;:…\n'.includes(c)) at += r.stop_pause;
+    else if (/[\p{L}\p{N}]/u.test(c)) {
+      e.shape = shapeOf(low);
+      if (spoken % r.blip_every === 0) {
+        const code = low.codePointAt(0);
+        e.blip = true;
+        e.st = (((code * 7) % 13) / 12 - 0.5) * r.pitch_range + ('aeiouy'.includes(low) ? r.vowel_lift : 0) + (rand() * 2 - 1) * r.jitter + r.question_rise * (rise[i] || 0);
+      }
+      spoken++;
+      at += step;
+    } else at += step * 0.5;
+    letters.push(e);
+  }
+  return { letters, duration: at };
+}
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { dir: 'a', tab: 'sound', voices: START(), vid: 'robot', line: 'Hello! Are you sure about this, captain?', depth: 1, at: -1, speaking: false, shape: 'rest', blink: false, event: 'Press Say.', history: [], chat: [], typing: null, sid: null, text: '' };
+    this.nodes = [];
+    this.timer = null;
+    this.again = null;
+    this.flow = null;
+    this.run = 0;
+    this.speaker = null;
+    this.after = null;
+    this.keep = true;
+  }
+
+  componentWillUnmount() {
+    this.cancel();
+  }
+
+  cancel() {
+    this.run++;
+    clearTimeout(this.flow);
+    clearTimeout(this.again);
+    this.halt();
+    this.speaker = null;
+    this.after = null;
+  }
+
+  current() {
+    return this.state.voices.find((v) => v.id === this.state.vid);
+  }
+
+  graph() {
+    if (this.ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const ctx = this.ctx = new AC();
+    const n = this.line = {};
+    n.input = ctx.createGain();
+    n.filter = ctx.createBiquadFilter();
+    n.dry = ctx.createGain();
+    n.chorus = ctx.createDelay(0.1);
+    n.chorus.delayTime.value = 0.02;
+    n.chorusWet = ctx.createGain();
+    n.lfo = ctx.createOscillator();
+    n.lfo.frequency.value = 0.7;
+    n.lfoDepth = ctx.createGain();
+    n.lfo.connect(n.lfoDepth);
+    n.lfoDepth.connect(n.chorus.delayTime);
+    n.lfo.start();
+    n.verb = ctx.createConvolver();
+    const size = Math.floor(ctx.sampleRate * 1.8), impulse = ctx.createBuffer(2, size, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const data = impulse.getChannelData(ch);
+      for (let i = 0; i < size; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / size, 3);
+    }
+    n.verb.buffer = impulse;
+    n.verbWet = ctx.createGain();
+    n.echo = ctx.createDelay(1);
+    n.echo.delayTime.value = 0.23;
+    n.echoBack = ctx.createGain();
+    n.echoWet = ctx.createGain();
+    n.limit = ctx.createDynamicsCompressor();
+    n.input.connect(n.filter);
+    n.filter.connect(n.dry);
+    n.dry.connect(n.limit);
+    n.filter.connect(n.chorus);
+    n.chorus.connect(n.chorusWet);
+    n.chorusWet.connect(n.limit);
+    n.filter.connect(n.verb);
+    n.verb.connect(n.verbWet);
+    n.verbWet.connect(n.limit);
+    n.filter.connect(n.echo);
+    n.echo.connect(n.echoBack);
+    n.echoBack.connect(n.echo);
+    n.echo.connect(n.echoWet);
+    n.echoWet.connect(n.limit);
+    n.limit.connect(ctx.destination);
+    n.noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const noise = n.noise.getChannelData(0);
+    for (let i = 0; i < noise.length; i++) noise[i] = Math.random() * 2 - 1;
+    this.applyLine();
+  }
+
+  applyLine() {
+    if (!this.ctx) return;
+    const talker = this.state.voices.find((v) => v.id === this.speaker) || this.current();
+    const n = this.line, now = this.ctx.currentTime, d = this.state.depth, kind = talker.line;
+    const set = (param, value) => param.setTargetAtTime(value, now, 0.04);
+    let type = 'lowpass', freq = 20000, q = 0.7, chorus = 0, verb = 0, echo = 0;
+    if (kind === 'underwater') { freq = lerpExp(20000, 420, d); q = 3; chorus = 0.7 * d; verb = 0.2 * d; }
+    if (kind === 'radio') { type = 'bandpass'; freq = 1600; q = 0.3 + 1.6 * d; }
+    if (kind === 'cave') { freq = lerpExp(20000, 4000, d); verb = 0.9 * d; }
+    if (kind === 'echo') { echo = 0.7 * d; }
+    n.filter.type = type;
+    set(n.filter.frequency, freq);
+    set(n.filter.Q, q);
+    set(n.chorusWet.gain, chorus);
+    set(n.lfoDepth.gain, 0.006);
+    set(n.verbWet.gain, verb);
+    set(n.echoWet.gain, echo);
+    set(n.echoBack.gain, 0.45);
+    set(n.dry.gain, kind === 'cave' ? 1 - 0.4 * d : 1);
+  }
+
+  shaper(fn) {
+    const node = this.ctx.createWaveShaper(), curve = new Float32Array(1024);
+    for (let i = 0; i < 1024; i++) curve[i] = fn(i / 511.5 - 1);
+    node.curve = curve;
+    return node;
+  }
+
+  blip(v, e, when) {
+    const ctx = this.ctx, fx = v.fx, length = 0.09, freq = 170 * v.rules.pitch * Math.pow(2, e.st / 12);
+    let src;
+    if (v.wave === 'noise') {
+      src = ctx.createBufferSource();
+      src.buffer = this.line.noise;
+      src.loop = true;
+      src.playbackRate.value = clamp(freq / 170, 0.2, 4);
+    } else {
+      src = ctx.createOscillator();
+      src.type = v.wave;
+      src.frequency.setValueAtTime(freq, when);
+      if (v.line === 'underwater') src.frequency.exponentialRampToValueAtTime(freq * 1.5, when + length);
+    }
+    let tail = src;
+    const link = (node) => { tail.connect(node); tail = node; };
+    if (fx.ring > 0) {
+      const ring = ctx.createGain(), mod = ctx.createOscillator();
+      ring.gain.value = 0;
+      mod.frequency.value = 60 + fx.ring * 700;
+      mod.connect(ring.gain);
+      link(ring);
+      mod.start(when);
+      mod.stop(when + length + 0.02);
+      this.nodes.push(mod);
+    }
+    if (fx.drive > 0) {
+      const k = 1 + fx.drive * 14;
+      link(this.shaper((x) => Math.tanh(k * x)));
+    }
+    if (fx.crush > 0) {
+      const steps = 2 + (1 - fx.crush) * 14;
+      link(this.shaper((x) => Math.round(x * steps) / steps));
+    }
+    if (fx.formant > 0) {
+      const sum = ctx.createGain(), pair = FORMANTS[e.shape] || FORMANTS.C;
+      sum.gain.value = 3.5;
+      pair.forEach((f) => {
+        const band = ctx.createBiquadFilter();
+        band.type = 'bandpass';
+        band.frequency.value = f;
+        band.Q.value = 3 + fx.formant * 11;
+        tail.connect(band);
+        band.connect(sum);
+      });
+      tail = sum;
+    }
+    if (fx.comb > 0) {
+      const delay = ctx.createDelay(0.05), back = ctx.createGain(), mix = ctx.createGain();
+      delay.delayTime.value = 0.003 + fx.comb * 0.012;
+      back.gain.value = 0.72;
+      tail.connect(mix);
+      tail.connect(delay);
+      delay.connect(back);
+      back.connect(delay);
+      delay.connect(mix);
+      tail = mix;
+    }
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, when);
+    env.gain.exponentialRampToValueAtTime(0.32, when + 0.005);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + length);
+    link(env);
+    env.connect(this.line.input);
+    src.start(when);
+    src.stop(when + length + 0.02);
+    this.nodes.push(src);
+  }
+
+  halt() {
+    clearInterval(this.timer);
+    this.timer = null;
+    this.nodes.forEach((n) => { try { n.stop(); } catch (e) {} });
+    this.nodes = [];
+  }
+
+  speak(id, text, done, keep) {
+    this.halt();
+    clearTimeout(this.again);
+    this.graph();
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    this.speaker = id;
+    this.after = done || null;
+    this.keep = keep !== false;
+    const v = this.state.voices.find((x) => x.id === id);
+    const timeline = plan(v, text), start = this.ctx.currentTime + 0.06;
+    timeline.letters.filter((e) => e.blip).forEach((e) => this.blip(v, e, start + e.t));
+    this.applyLine();
+    this.setState({ speaking: true, sid: id, text, at: -1, typing: null });
+    this.timer = setInterval(() => this.tick(timeline, start), 33);
+  }
+
+  finish(skipped) {
+    const id = this.speaker, text = this.state.text, done = this.after;
+    this.halt();
+    this.speaker = null;
+    this.after = null;
+    this.setState({
+      speaking: false, sid: null, at: -1, shape: 'rest', blink: false,
+      event: 'finished(skipped: ' + skipped + ')',
+      chat: this.keep ? this.state.chat.concat([{ id, text }]).slice(-12) : this.state.chat
+    }, done || undefined);
+  }
+
+  // Each line: a typing pause, then the voice, then a short beat before the next.
+  play(queue) {
+    this.cancel();
+    const run = this.run, lines = queue.slice();
+    const next = () => {
+      if (run !== this.run) return;
+      const m = lines.shift();
+      if (!m) return;
+      this.setState({ typing: m[0] });
+      this.flow = setTimeout(() => {
+        if (run !== this.run) return;
+        this.speak(m[0], m[1], () => { this.flow = setTimeout(next, 450); });
+      }, 600 + Math.min(m[1].length * 14, 700));
+    };
+    next();
+  }
+
+  stopAll(event) {
+    this.cancel();
+    this.setState({ speaking: false, sid: null, typing: null, at: -1, shape: 'rest', blink: false, event });
+  }
+
+  tick(timeline, start) {
+    const at = this.ctx.currentTime - start;
+    if (at >= timeline.duration + 0.15) {
+      this.finish(false);
+      return;
+    }
+    let index = -1;
+    while (index + 1 < timeline.letters.length && timeline.letters[index + 1].t <= at) index++;
+    const e = timeline.letters[index] || {}, voiced = e.shape && at - e.t < 0.1;
+    const shape = voiced ? e.shape : 'rest';
+    const open = { A: 1, O: 0.8, E: 0.6, C: 0.4, M: 0, rest: 0 }[shape];
+    this.setState({ at: index, shape, blink: '.!?'.includes(e.c || ' '), event: index >= 0 ? 'mouth(index: ' + index + ', shape: "' + shape + '", open: ' + open + ')' : this.state.event });
+  }
+
+  edit(fn, replay) {
+    const history = this.state.history.concat([this.state.voices]).slice(-30);
+    const voices = this.state.voices.map((v) => {
+      if (v.id !== this.state.vid) return v;
+      const copy = Object.assign({}, v, { rules: Object.assign({}, v.rules), fx: Object.assign({}, v.fx) });
+      fn(copy);
+      return copy;
+    });
+    this.setState({ voices, history }, () => {
+      this.applyLine();
+      if (replay === false) return;
+      clearTimeout(this.again);
+      this.again = setTimeout(() => {
+        this.cancel();
+        this.speak(this.state.vid, this.state.line, null, false);
+      }, 300);
+    });
+  }
+
+  pick(id) {
+    this.cancel();
+    this.setState({ vid: id, at: -1, speaking: false, sid: null, typing: null, shape: 'rest', blink: false, event: 'Press Say.' }, () => {
+      this.applyLine();
+      if (this.state.dir === 'c') this.speak(id, this.state.line);
+    });
+  }
+
+  sayWithReply() {
+    const s = this.state, index = s.voices.findIndex((v) => v.id === s.vid);
+    const other = s.voices[(index + 1) % s.voices.length];
+    this.play([[s.vid, s.line], [other.id, REPLIES[other.id]]]);
+  }
+
+  mood(kind) {
+    this.edit((v) => {
+      const r = v.rules, nudge = (key, by) => {
+        const b = RULES.find((x) => x[0] === key);
+        r[key] = Math.round(clamp(r[key] + by, b[2], b[3]) * 100) / 100;
+      };
+      if (kind === 'angry') { nudge('pitch', -0.1); nudge('speed', 3); v.fx.drive = clamp(v.fx.drive + 0.25, 0, 1); }
+      if (kind === 'nervous') { nudge('speed', 4); nudge('jitter', 1.5); nudge('question_rise', 3); }
+      if (kind === 'old') { nudge('pitch', -0.1); nudge('speed', -3); nudge('jitter', 1); }
+      if (kind === 'small') { nudge('pitch', 0.3); nudge('pitch_range', 2); }
+    });
+  }
+
+  randomise() {
+    this.edit((v) => {
+      RULES.forEach((b) => {
+        let high = b[3];
+        if (b[0] === 'speed') high = 24;
+        if (b[0] === 'stop_pause' || b[0] === 'comma_pause' || b[0] === 'space_pause') high = 0.6;
+        const value = b[2] + Math.random() * (high - b[2]);
+        v.rules[b[0]] = b[0] === 'blip_every' ? Math.round(value) : Math.round(value * 100) / 100;
+      });
+      v.wave = WAVES[Math.floor(Math.random() * WAVES.length)][0];
+      FX.forEach((f) => { v.fx[f[0]] = Math.random() < 0.3 ? Math.round(Math.random() * 100) / 100 : 0; });
+    });
+  }
+
+  renderVals() {
+    const s = this.state, v = this.current();
+    const byId = (id) => s.voices.find((x) => x.id === id);
+    const timeline = s.sid ? plan(byId(s.sid), s.text) : plan(v, s.line), blips = timeline.letters.filter((e) => e.blip).map((e) => e.st);
+    const row = (id, extra) => {
+      const who = byId(id), now = id === s.sid;
+      return Object.assign({ name: who.name, cls: id === s.vid ? 'mine' : '', live: '', typing: false, talking: true, shown: '', unshown: '', layers: layers(who.art, 'rest', false) }, extra, now && extra.live ? { layers: layers(who.art, s.shape, s.blink) } : {});
+    };
+    const rows = s.chat.map((m) => row(m.id, { shown: m.text }));
+    if (s.sid) rows.push(row(s.sid, { live: 'live', shown: s.text.slice(0, s.at + 1), unshown: s.text.slice(s.at + 1) }));
+    else if (s.typing) rows.push(row(s.typing, { typing: true, talking: false }));
+    const low = Math.min.apply(null, blips.concat([0])), high = Math.max.apply(null, blips.concat([0]));
+    const toggle = (value, key) => (value === key ? 'on' : '');
+    const rulesOut = {};
+    RULES.forEach((b) => { rulesOut[b[0]] = v.rules[b[0]]; });
+    const fxOut = FX.filter((f) => v.fx[f[0]] > 0).map((f) => ({ type: f[0], amount: v.fx[f[0]] }));
+    const file = { schema_version: 2, kind: 'voice', id: 'voice-' + v.id, seed: 42, source: { tone: v.wave }, blip_fx: fxOut, line_fx: { type: v.line, amount: s.depth }, rules: rulesOut };
+    return {
+      dir: s.dir,
+      dirs: [['a','Workbench'],['b','Timeline'],['c','Cast']].map((d) => ({ label: d[1], on: s.dir === d[0], cls: toggle(s.dir, d[0]), pick: () => this.setState({ dir: d[0] }) })),
+      tabs: [['sound','Sound'],['rules','Rules'],['api','API']].map((t) => ({ label: t[1], on: s.tab === t[0], cls: toggle(s.tab, t[0]), pick: () => this.setState({ tab: t[0] }) })),
+      tabSound: s.tab === 'sound', tabRules: s.tab === 'rules', tabApi: s.tab === 'api',
+      cast: s.voices.map((x) => {
+        const live = x.id === s.vid, talking = x.id === s.sid;
+        return { name: x.name, tag: x.tag, on: live, cls: live ? 'on' : '', layers: layers(x.art, talking ? s.shape : 'rest', talking && s.blink), pick: () => this.pick(x.id) };
+      }),
+      rows: rows.reverse(),
+      empty: rows.length === 0,
+      event: s.event,
+      line: s.line,
+      setLine: (e) => this.setState({ line: e.target.value, at: -1 }),
+      say: () => this.sayWithReply(),
+      chat: () => this.setState({ chat: [] }, () => this.play(SCENE)),
+      skip: () => { if (s.speaking) this.finish(true); },
+      stop: () => this.stopAll('Stopped.'),
+      undo: () => {
+        if (!s.history.length) return;
+        this.setState({ voices: s.history[s.history.length - 1], history: s.history.slice(0, -1) }, () => this.applyLine());
+      },
+      randomise: () => this.randomise(),
+      letters: timeline.letters.map((e, i) => ({ c: e.c === ' ' ? '·' : e.c, shape: e.shape, blip: e.blip, cls: i === s.at ? 'now' : '', y: high === low ? 45 : Math.round(90 - ((e.st - low) / (high - low)) * 90) })),
+      waves: WAVES.map((w) => ({ label: w[1], on: v.wave === w[0], cls: toggle(v.wave, w[0]), pick: () => this.edit((x) => { x.wave = w[0]; }) })),
+      fx: FX.map((f) => ({ label: f[1], amount: v.fx[f[0]], on: v.fx[f[0]] > 0, cls: v.fx[f[0]] > 0 ? 'on' : '', pick: () => this.edit((x) => { x.fx[f[0]] = x.fx[f[0]] > 0 ? 0 : 0.6; }), set: (e) => { const value = Number(e.target.value); this.edit((x) => { x.fx[f[0]] = value; }); } })),
+      lineFx: LINE.map((p) => ({ label: p[1], on: v.line === p[0], cls: toggle(v.line, p[0]), pick: () => this.edit((x) => { x.line = p[0]; }, !s.speaking) })),
+      depth: s.depth,
+      depthShow: Math.round(s.depth * 100) + '%',
+      setDepth: (e) => this.setState({ depth: Number(e.target.value) }, () => this.applyLine()),
+      moods: [['angry','Angrier'],['nervous','Nervous'],['old','Older'],['small','Smaller']].map((m) => ({ label: m[1], pick: () => this.mood(m[0]) })),
+      rules: RULES.map((b) => ({ label: b[1], min: b[2], max: b[3], step: b[4], value: v.rules[b[0]], show: v.rules[b[0]], set: (e) => { const value = Number(e.target.value); this.edit((x) => { x.rules[b[0]] = value; }); } })),
+      snippet: gdTokens('# Load once, then talk\nvar voice = BabbleVoice.load("res://voices/' + v.id + '.json")\n\n# One signal per letter, in time with the sound\nbabble.mouth.connect(portrait.set_mouth)\nbabble.letter.connect(box.reveal_to)\n\nbabble.say("' + s.line.replace(/"/g, '\\"').slice(0, 28) + '", voice)\nawait babble.finished'),
+      json: jsonTokens(JSON.stringify(file, null, 2)),
+      path: 'res://voices/' + v.id + '.json',
+      count: timeline.letters.length,
+      seconds: timeline.duration.toFixed(2) + 's',
+      mode: s.speaking ? 'Speaking' : 'Ready'
+    };
+  }
+}
+
+
+const Face = ({ layers }) => html`<svg class="px" viewBox="0 0 16 16" aria-hidden="true">${layers.map((l) => html`<path fill=${l.fill} d=${l.d} />`)}</svg>`;
+const Code = ({ parts }) => html`<pre>${parts.map((k) => html`<span class=${k.cls}>${k.t}</span>`)}</pre>`;
+const Pill = (x) => html`<button type="button" class=${'btn ' + x.cls} aria-pressed=${x.on} onClick=${x.pick}>${x.label}</button>`;
+
+class App extends Component {
+  render() {
+    const r = this.renderVals();
+    return html`<div class=${'app dir-' + r.dir}>
+      <div class="top">
+        <span class="brand">BABBLE</span>
+        ${r.dirs.map(Pill)}
+        <span class="spacer"></span>
+        <button type="button" class="btn" onClick=${r.randomise}>Random</button>
+        <button type="button" class="btn" onClick=${r.undo}>Undo</button>
+      </div>
+      <div class="work">
+        <section class="panel lib" aria-label="Cast">
+          <div class="head">CAST</div>
+          <div class="body"><div class="voices">
+            ${r.cast.map((v) => html`<button type="button" class=${'voice ' + v.cls} aria-pressed=${v.on} onClick=${v.pick}>
+              <${Face} layers=${v.layers} />
+              <span><b>${v.name}</b><small>${v.tag}</small></span>
+            </button>`)}
+          </div></div>
+        </section>
+        <section class="panel stage" aria-label="Stage">
+          <div class="head">STAGE</div>
+          <div class="body chat">
+            ${r.rows.map((m) => html`<div class=${'msg ' + m.cls}>
+              <${Face} layers=${m.layers} />
+              <div style="min-width:0">
+                <div class="who">${m.name}</div>
+                <div class=${'bubble ' + m.live}>
+                  ${m.typing ? html`<div class="dots" role="img" aria-label=${m.name + ' is typing'}><i></i><i></i><i></i></div>` : null}
+                  ${m.talking ? html`${m.shown}<span class="ghost">${m.unshown}</span>` : null}
+                </div>
+              </div>
+            </div>`)}
+            ${r.empty ? html`<p class="empty">Press Chat to play a scene, or type a line and press Say.</p>` : null}
+          </div>
+          <div class="event">${r.event}</div>
+          <div class="say">
+            <input type="text" aria-label="Test line" value=${r.line} onInput=${r.setLine} />
+            <button type="button" class="btn go" onClick=${r.say}>Say</button>
+            <button type="button" class="btn go" onClick=${r.chat}>Chat</button>
+            <button type="button" class="btn" onClick=${r.skip}>Skip</button>
+            <button type="button" class="btn" onClick=${r.stop}>Stop</button>
+          </div>
+        </section>
+        <section class="panel time" aria-label="Line timeline">
+          <div class="head">TIMELINE<span style="color:#819796">letters / pitch / mouth</span></div>
+          <div class="body"><div class="lanes">
+            ${r.letters.map((l) => html`<div class=${'col ' + l.cls}>
+              <div class="char">${l.c}</div>
+              <div class="pitch">${l.blip ? html`<div class="dot" style=${'top:' + l.y + '%'}></div>` : null}</div>
+              <div class="shape">${l.shape}</div>
+            </div>`)}
+          </div></div>
+        </section>
+        <section class="panel insp" aria-label="Inspector">
+          <div class="tabs">${r.tabs.map((t) => html`<button type="button" class=${'tab ' + t.cls} aria-pressed=${t.on} onClick=${t.pick}>${t.label}</button>`)}</div>
+          <div class="body">
+            ${r.tabSound ? html`
+              <div class="sect"><h3>BLIP SOURCE</h3><div class="pills">${r.waves.map(Pill)}</div>
+                <p class="note">Samples and recorded syllables would sit here too.</p></div>
+              <div class="sect"><h3>BLIP FX</h3>
+                ${r.fx.map((f) => html`<div class="fx">${Pill(f)}<input type="range" aria-label=${f.label + ' amount'} min="0" max="1" step="0.01" value=${f.amount} onInput=${f.set} /></div>`)}</div>
+              <div class="sect"><h3>LINE FX (LIVE)</h3><div class="pills">${r.lineFx.map(Pill)}</div>
+                <label class="row" style="margin-top:6px"><span>Amount</span><input type="range" min="0" max="1" step="0.01" value=${r.depth} onInput=${r.setDepth} /><b>${r.depthShow}</b></label>
+                <p class="note">Drag Amount while a line is speaking.</p></div>
+              <div class="sect"><h3>MOODS</h3><div class="pills">${r.moods.map((m) => html`<button type="button" class="btn" onClick=${m.pick}>${m.label}</button>`)}</div></div>
+            ` : null}
+            ${r.tabRules ? r.rules.map((x) => html`<label class="row"><span>${x.label}</span><input type="range" min=${x.min} max=${x.max} step=${x.step} value=${x.value} onInput=${x.set} /><b>${x.show}</b></label>`) : null}
+            ${r.tabApi ? html`
+              <div class="sect"><h3>USE IT (PROPOSED)</h3><${Code} parts=${r.snippet} /></div>
+              <div class="sect"><h3>VOICE FILE</h3><${Code} parts=${r.json} /></div>
+            ` : null}
+          </div>
+        </section>
+      </div>
+      <div class="status"><span>${r.path}</span><span>${r.count} letters</span><span>${r.seconds}</span><span>${r.mode}</span><span>Mockup: browser audio, not the final Godot sound</span></div>
+    </div>`;
+  }
+}
+render(html`<${App} />`, document.body);
+
+</script>
+</body>
+</html>
