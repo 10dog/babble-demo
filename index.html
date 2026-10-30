@@ -66,6 +66,10 @@ a{color:#A4DDDB}a:hover{color:#EBEDE9}
 .k-key{color:#E8C170}.k-str{color:#A4DDDB}.k-type{color:#4F8FBA}.k-fn{color:#EBEDE9}.k-num{color:#DE9E41}.k-com{color:#819796}.k-prop{color:#E8C170}
 .say{display:flex;flex-wrap:wrap;gap:4px;padding:8px;border-top:2px solid #000}
 .say input{flex:1 1 220px;min-width:0;font:inherit;background:#090A14;color:#EBEDE9;border:2px solid #000;padding:4px 8px;min-height:32px}
+.style{color:#E8C170}
+.ex{font:inherit;color:#EBEDE9;text-align:left;width:100%;background:#090A14;border:2px solid #000;padding:4px 8px;margin-bottom:4px;cursor:pointer;overflow-wrap:anywhere}
+.ex:hover{background:#394A50}
+.ex:focus-visible{outline:2px solid #E8C170;outline-offset:1px}
 .event{font-size:16px;color:#A4DDDB;padding:4px 8px 8px}
 .lanes{display:flex;gap:1px;min-width:max-content;height:100%;min-height:160px}
 .col{width:22px;position:relative;display:flex;flex-direction:column;background:#151D28}
@@ -107,7 +111,33 @@ const RULES = [
 ];
 const FX = [['formant','Formant'],['ring','Ring mod'],['crush','Bitcrush'],['drive','Drive'],['comb','Comb']];
 const LINE = [['dry','Dry'],['underwater','Underwater'],['radio','Radio'],['cave','Cave'],['echo','Echo']];
-const WAVES = [['triangle','Triangle'],['square','Square'],['sawtooth','Saw'],['sine','Sine'],['noise','Noise']];
+const WAVES = [['syllable','Syllables'],['triangle','Triangle'],['square','Square'],['sawtooth','Saw'],['sine','Sine'],['noise','Noise']];
+const PERSONALITY = {
+  plain: { label:'Plain', note:'Says the line straight.', speed:1, pause:1, jitter:0 },
+  nervous: { label:'Nervous', note:'Stutters on some words, rushes and lifts at the end.', speed:1.15, pause:0.8, jitter:1, stutter:0.6, shape:(sent) => 3 * sent },
+  grumpy: { label:'Grumpy', note:'Every sentence falls away.', speed:0.9, pause:1.1, jitter:0, shape:(sent) => 1.5 - 7 * sent },
+  old: { label:'Old', note:'Slow, wobbly, long pauses.', speed:0.75, pause:1.7, jitter:0.5, shape:(sent, all, n) => 1.6 * Math.sin(n * 1.1) },
+  excited: { label:'Excited', note:'Speeds up and climbs through the line.', speed:1.05, pause:0.7, jitter:0.5, ramp:0.6, shape:(sent, all) => 6 * all }
+};
+const TUNE = {
+  chirpy: { personality:'excited', size:0.7, consonant:0.3 },
+  gruff: { personality:'grumpy', size:1.4, consonant:0.5 },
+  robot: { personality:'plain', size:1, consonant:0.6 },
+  floppy: { personality:'nervous', size:1, consonant:0.3 },
+  bubbles: { personality:'old', size:0.85, consonant:0.1 }
+};
+const SCALE = [0, 3, 5, 7, 10];
+const GRID = 0.125;
+const TUNE_PHRASE = [0, 3, 7, 5, 10, 7, 3, 5];
+const EXAMPLES = [
+  '[#whisper] Keep your voice down.',
+  '[#shout] Get out of the water!',
+  'Wait...[wait=0.8] did you hear that?',
+  '[speed=0.5]Slowly now,[speed=2] then very fast!',
+  '[#mood=nervous] Is it safe? Are you sure?',
+  '[#mood=grumpy] I told you this would happen.',
+  'Gruff: [[Hmph|Fine|Whatever]], [b]captain[/b].'
+];
 const FORMANTS = { A:[800,1200], E:[400,2200], O:[450,800], M:[300,900], C:[500,1500] };
 const voice = (id, name, tag, wave, rules, fx, line, art) => ({ id, name, tag, wave, fx, line, art, rules: Object.assign({ pitch:1, speed:18, pitch_range:6, vowel_lift:2, question_rise:4, jitter:1, blip_every:2, space_pause:0.04, comma_pause:0.18, stop_pause:0.32 }, rules) });
 const none = { formant:0, ring:0, crush:0, drive:0, comb:0 };
@@ -117,13 +147,13 @@ const START = () => [
   voice('robot','Robot','Vowel talkbox','sawtooth',{ pitch:0.9, speed:15, pitch_range:2, vowel_lift:0, jitter:0, blip_every:1, question_rise:3 },Object.assign({},none,{ formant:0.8, ring:0.25 }),'dry',{ bg:C.dark, body:C.shine, parts:[[7,1,2,2,C.gold],[7,3,2,1,C.lift],[3,4,10,10,C.shine],[1,7,2,3,C.lift],[13,7,2,3,C.lift]], eyes:[[4,6,3,3],[9,6,3,3]], eye:C.aqua }),
   voice('floppy','Floppy','Dog, loose','sine',{ pitch:1.1, speed:18, pitch_range:14, vowel_lift:6, jitter:3, blip_every:3 },Object.assign({},none,{ comb:0.4 }),'dry',{ bg:C.gold, body:C.white, parts:[[4,3,8,11,C.white],[2,4,2,7,C.lift],[12,4,2,7,C.lift]], eyes:[[5,6,2,2],[9,6,2,2]] }),
   voice('bubbles','Bubbles','Fish, underwater','triangle',{ pitch:1.3, speed:14, pitch_range:8, vowel_lift:3, jitter:2 },Object.assign({},none,{ comb:0.25 }),'underwater',{ bg:C.dark, body:C.teal, parts:[[3,4,10,10,C.teal],[2,6,12,6,C.teal],[0,7,2,3,C.aqua],[14,7,2,3,C.aqua],[7,2,2,2,C.aqua]], eyes:[[4,6,2,3],[10,6,2,3]], eye:C.white })
-];
+].map((v) => Object.assign(v, { sing:false }, TUNE[v.id]));
 const MOUTH = { rest:[[6,11,4,1]], M:[[5,11,6,1]], C:[[6,10,4,2]], E:[[5,10,6,2]], O:[[6,10,4,3]], A:[[5,10,6,3]] };
 const SCENE = [
   ['robot', 'Hello! Are you sure about this, captain?'],
-  ['bubbles', 'Blub. The water is rising.'],
+  ['bubbles', '[#whisper] Blub. The water is rising.'],
   ['gruff', 'Then we swim.'],
-  ['chirpy', 'Swim? I am a bird!'],
+  ['chirpy', '[#shout] Swim?[wait=0.4] I am a bird!'],
   ['floppy', 'I will fetch a boat!'],
   ['robot', 'Boat not found.']
 ];
@@ -196,27 +226,98 @@ function questionLetters(text) {
   return rise;
 }
 
-function plan(v, text) {
-  const r = v.rules, step = 1 / r.speed, rand = rng(hash(v.id + text)), rise = questionLetters(text), letters = [];
-  let at = 0, spoken = 0;
+// The same line text a .dialogue file holds, reduced to what Babble needs.
+function parseLine(raw) {
+  const out = { character: '', tags: [], waits: {}, speeds: {}, text: '' };
+  let s = raw.replace(/\[\[(.*?)\]\]/g, (m, list) => { const o = list.split('|'); return o[hash(raw) % o.length]; });
+  s = s.replace(/\{\{.*?\}\}/g, 'friend');
+  const who = s.match(/^([^\s:\[][^:\[]{0,23}):\s*/);
+  if (who) { out.character = who[1]; s = s.slice(who[0].length); }
+  let last = 0;
+  const add = (part) => { out.text += out.text ? part : part.replace(/^\s+/, ''); };
+  s.replace(/\[(?:[^\[\]]|\[[^\]]*\])*\]/g, (m, at) => {
+    add(s.slice(last, at));
+    last = at + m.length;
+    const body = m.slice(1, -1).trim(), number = parseFloat(body.split('=')[1]);
+    if (body[0] === '#') body.split(',').forEach((t) => out.tags.push(t.trim().replace(/^#/, '')));
+    else if (/^wait\b/.test(body)) out.waits[out.text.length] = (out.waits[out.text.length] || 0) + (isNaN(number) ? 0.5 : number);
+    else if (/^speed=/.test(body) && number > 0) out.speeds[out.text.length] = number;
+    return m;
+  });
+  add(s.slice(last));
+  return out;
+}
+
+function lineStyle(line) {
+  const style = { whisper: false, shout: false, personality: '' };
+  line.tags.forEach((t) => {
+    const name = t.replace(/^mood=/, '');
+    if (t === 'whisper' || t === 'shout') style[t] = true;
+    else if (PERSONALITY[name]) style.personality = name;
+  });
+  return style;
+}
+
+function sing(v, letters) {
+  const lift = 12 * Math.log2(v.rules.pitch / v.size);
+  let last = -GRID;
+  letters.forEach((e) => {
+    e.t = Math.max(Math.round(e.t / GRID) * GRID, e.blip ? last + GRID : last);
+    if (e.blip) {
+      const total = lift + e.st * 0.4 + TUNE_PHRASE[Math.floor(e.t / (GRID * 2)) % TUNE_PHRASE.length], octave = Math.floor(total / 12) * 12;
+      const note = SCALE.concat([12]).reduce((a, b) => Math.abs(octave + b - total) < Math.abs(octave + a - total) ? b : a);
+      e.st = octave + note - lift;
+      e.extra = null;
+      last = e.t;
+    }
+  });
+  return last + GRID * 2;
+}
+
+function plan(v, raw) {
+  const line = parseLine(raw), text = line.text, style = lineStyle(line), r = v.rules;
+  const kind = style.personality || v.personality, p = PERSONALITY[kind];
+  const rand = rng(hash(v.id + text)), rise = questionLetters(text), letters = [];
+  const base = r.speed * p.speed * (style.shout ? 1.15 : 1) * (style.whisper ? 0.9 : 1);
+  const ends = [];
+  for (let i = text.length - 1, end = text.length; i >= 0; i--) {
+    if ('.!?'.includes(text[i])) end = i;
+    ends[i] = end;
+  }
+  let at = 0, spoken = 0, speed = 1, start = 0;
   for (let i = 0; i < text.length; i++) {
-    const c = text[i], low = c.toLowerCase(), e = { i, c, t: at, blip: false, st: 0, shape: '' };
-    if (c === ' ') at += r.space_pause + step * 0.5;
-    else if (c === ',') at += r.comma_pause;
-    else if ('.!?;:…\n'.includes(c)) at += r.stop_pause;
+    const c = text[i], low = c.toLowerCase();
+    if (line.waits[i]) at += line.waits[i];
+    if (line.speeds[i]) speed = line.speeds[i];
+    const step = 1 / (base * speed * (1 + (p.ramp || 0) * i / text.length));
+    const e = { i, c, t: at, blip: false, st: 0, shape: '' };
+    if (c === ' ') at += r.space_pause * p.pause + step * 0.5;
+    else if (c === ',') at += r.comma_pause * p.pause;
+    else if ('.!?;:…\n'.includes(c)) { at += r.stop_pause * p.pause; start = i + 1; }
     else if (/[\p{L}\p{N}]/u.test(c)) {
       e.shape = shapeOf(low);
-      if (spoken % r.blip_every === 0) {
-        const code = low.codePointAt(0);
+      if (style.whisper && e.shape !== 'M') e.shape = 'C';
+      const stutter = p.stutter && (i === 0 || text[i - 1] === ' ') && !'aeiouy'.includes(low) && rand() < p.stutter;
+      if (stutter || spoken % r.blip_every === 0) {
+        const code = low.codePointAt(0), sent = (i - start) / Math.max(1, ends[i] - start);
         e.blip = true;
-        e.st = (((code * 7) % 13) / 12 - 0.5) * r.pitch_range + ('aeiouy'.includes(low) ? r.vowel_lift : 0) + (rand() * 2 - 1) * r.jitter + r.question_rise * (rise[i] || 0);
+        e.st = (((code * 7) % 13) / 12 - 0.5) * r.pitch_range + ('aeiouy'.includes(low) ? r.vowel_lift : 0) + (rand() * 2 - 1) * (r.jitter + p.jitter) + r.question_rise * (rise[i] || 0);
+        e.st += p.shape ? p.shape(sent, i / text.length, spoken) : 0;
+        e.st = e.st * (style.whisper ? 0.4 : 1) + (style.shout ? 3 : 0);
+        if (stutter) {
+          e.extra = [at, at + step * 0.8];
+          at += step * 1.6;
+          e.t = at;
+        }
       }
       spoken++;
       at += step;
     } else at += step * 0.5;
     letters.push(e);
   }
-  return { letters, duration: at };
+  if (line.waits[text.length]) at += line.waits[text.length];
+  if (v.sing) at = sing(v, letters);
+  return { letters, duration: at, text, character: line.character, style, kind };
 }
 
 class Component extends DCLogic {
@@ -295,6 +396,18 @@ class Component extends DCLogic {
     n.echo.connect(n.echoWet);
     n.echoWet.connect(n.limit);
     n.limit.connect(ctx.destination);
+    n.hit = (when, freq, gain, length) => {
+      const osc = ctx.createOscillator(), env = ctx.createGain();
+      osc.frequency.setValueAtTime(freq * 3, when);
+      osc.frequency.exponentialRampToValueAtTime(freq, when + 0.04);
+      env.gain.setValueAtTime(gain, when);
+      env.gain.exponentialRampToValueAtTime(0.0001, when + length);
+      osc.connect(env);
+      env.connect(n.limit);
+      osc.start(when);
+      osc.stop(when + length);
+      this.nodes.push(osc);
+    };
     n.noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
     const noise = n.noise.getChannelData(0);
     for (let i = 0; i < noise.length; i++) noise[i] = Math.random() * 2 - 1;
@@ -329,22 +442,49 @@ class Component extends DCLogic {
     return node;
   }
 
-  blip(v, e, when) {
-    const ctx = this.ctx, fx = v.fx, length = 0.09, freq = 170 * v.rules.pitch * Math.pow(2, e.st / 12);
+  noiseBurst(e, v, when, gain) {
+    const low = e.c.toLowerCase(), hiss = 'szxc'.includes(low), stop = 'tkdgpbqj'.includes(low), soft = 'fhv'.includes(low);
+    if (!hiss && !stop && !soft) return;
+    const ctx = this.ctx, src = ctx.createBufferSource(), filter = ctx.createBiquadFilter(), env = ctx.createGain(), length = hiss ? 0.05 : stop ? 0.014 : 0.03;
+    src.buffer = this.line.noise;
+    filter.type = stop ? 'bandpass' : 'highpass';
+    filter.frequency.value = (stop ? 2400 : hiss ? 4500 : 2500) / v.size;
+    env.gain.setValueAtTime(gain, when);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + length);
+    src.connect(filter);
+    filter.connect(env);
+    env.connect(this.line.input);
+    src.start(when, Math.random() * 0.9, length + 0.01);
+    this.nodes.push(src);
+  }
+
+  blip(v, e, when, style) {
+    const talky = v.wave === 'syllable', ctx = this.ctx, fx = Object.assign({}, v.fx), length = talky ? 0.13 : 0.09, freq = 170 * v.rules.pitch / v.size * Math.pow(2, e.st / 12);
+    const breath = v.wave === 'noise' || style.whisper, peak = style.whisper ? 0.16 : style.shout ? 0.5 : 0.32;
+    if (talky || style.whisper) fx.formant = Math.max(fx.formant, 0.9);
+    if (style.shout) fx.drive = Math.max(fx.drive, 0.5);
+    const tick = Math.max(v.consonant, talky ? 0.5 : 0);
+    if (tick > 0) this.noiseBurst(e, v, when, tick * peak * 0.8);
     let src;
-    if (v.wave === 'noise') {
+    if (breath) {
       src = ctx.createBufferSource();
       src.buffer = this.line.noise;
       src.loop = true;
       src.playbackRate.value = clamp(freq / 170, 0.2, 4);
     } else {
       src = ctx.createOscillator();
-      src.type = v.wave;
+      src.type = talky ? 'sawtooth' : v.wave;
       src.frequency.setValueAtTime(freq, when);
+      if (talky) src.frequency.exponentialRampToValueAtTime(freq * 0.88, when + length);
       if (v.line === 'underwater') src.frequency.exponentialRampToValueAtTime(freq * 1.5, when + length);
     }
     let tail = src;
     const link = (node) => { tail.connect(node); tail = node; };
+    const body = ctx.createBiquadFilter();
+    body.type = 'peaking';
+    body.frequency.value = 1000 / v.size;
+    body.gain.value = 6;
+    link(body);
     if (fx.ring > 0) {
       const ring = ctx.createGain(), mod = ctx.createOscillator();
       ring.gain.value = 0;
@@ -369,7 +509,7 @@ class Component extends DCLogic {
       pair.forEach((f) => {
         const band = ctx.createBiquadFilter();
         band.type = 'bandpass';
-        band.frequency.value = f;
+        band.frequency.value = f / v.size;
         band.Q.value = 3 + fx.formant * 11;
         tail.connect(band);
         band.connect(sum);
@@ -389,7 +529,7 @@ class Component extends DCLogic {
     }
     const env = ctx.createGain();
     env.gain.setValueAtTime(0.0001, when);
-    env.gain.exponentialRampToValueAtTime(0.32, when + 0.005);
+    env.gain.exponentialRampToValueAtTime(peak, when + 0.005);
     env.gain.exponentialRampToValueAtTime(0.0001, when + length);
     link(env);
     env.connect(this.line.input);
@@ -410,12 +550,23 @@ class Component extends DCLogic {
     clearTimeout(this.again);
     this.graph();
     if (this.ctx.state === 'suspended') this.ctx.resume();
+    const named = parseLine(text).character.toLowerCase(), byName = this.state.voices.find((x) => x.name.toLowerCase() === named);
+    if (byName) id = byName.id;
     this.speaker = id;
     this.after = done || null;
     this.keep = keep !== false;
     const v = this.state.voices.find((x) => x.id === id);
     const timeline = plan(v, text), start = this.ctx.currentTime + 0.06;
-    timeline.letters.filter((e) => e.blip).forEach((e) => this.blip(v, e, start + e.t));
+    timeline.letters.filter((e) => e.blip).forEach((e) => {
+      (e.extra || []).forEach((t) => this.blip(v, e, start + t, timeline.style));
+      this.blip(v, e, start + e.t, timeline.style);
+    });
+    if (v.sing) {
+      for (let t = 0; t < timeline.duration; t += GRID * 2) {
+        if (t % (GRID * 4) === 0) this.line.hit(start + t, 55, 0.5, 0.14);
+        else this.line.hit(start + t, 900, 0.05, 0.03);
+      }
+    }
     this.applyLine();
     this.setState({ speaking: true, sid: id, text, at: -1, typing: null });
     this.timer = setInterval(() => this.tick(timeline, start), 33);
@@ -429,7 +580,7 @@ class Component extends DCLogic {
     this.setState({
       speaking: false, sid: null, at: -1, shape: 'rest', blink: false,
       event: 'finished(skipped: ' + skipped + ')',
-      chat: this.keep ? this.state.chat.concat([{ id, text }]).slice(-12) : this.state.chat
+      chat: this.keep ? this.state.chat.concat([{ id, text: parseLine(text).text }]).slice(-12) : this.state.chat
     }, done || undefined);
   }
 
@@ -502,16 +653,10 @@ class Component extends DCLogic {
     this.play([[s.vid, s.line], [other.id, REPLIES[other.id]]]);
   }
 
-  mood(kind) {
-    this.edit((v) => {
-      const r = v.rules, nudge = (key, by) => {
-        const b = RULES.find((x) => x[0] === key);
-        r[key] = Math.round(clamp(r[key] + by, b[2], b[3]) * 100) / 100;
-      };
-      if (kind === 'angry') { nudge('pitch', -0.1); nudge('speed', 3); v.fx.drive = clamp(v.fx.drive + 0.25, 0, 1); }
-      if (kind === 'nervous') { nudge('speed', 4); nudge('jitter', 1.5); nudge('question_rise', 3); }
-      if (kind === 'old') { nudge('pitch', -0.1); nudge('speed', -3); nudge('jitter', 1); }
-      if (kind === 'small') { nudge('pitch', 0.3); nudge('pitch_range', 2); }
+  tryLine(line) {
+    this.setState({ line, at: -1 }, () => {
+      this.cancel();
+      this.speak(this.state.vid, line, null, this.state.stage === 'chat');
     });
   }
 
@@ -526,6 +671,10 @@ class Component extends DCLogic {
       });
       v.wave = WAVES[Math.floor(Math.random() * WAVES.length)][0];
       FX.forEach((f) => { v.fx[f[0]] = Math.random() < 0.3 ? Math.round(Math.random() * 100) / 100 : 0; });
+      const kinds = Object.keys(PERSONALITY);
+      v.personality = kinds[Math.floor(Math.random() * kinds.length)];
+      v.size = Math.round((0.5 + Math.random() * 1.5) * 100) / 100;
+      v.consonant = Math.round(Math.random() * 100) / 100;
     });
   }
 
@@ -538,19 +687,21 @@ class Component extends DCLogic {
       return Object.assign({ name: who.name, cls: id === s.vid ? 'mine' : '', live: '', typing: false, talking: true, shown: '', unshown: '', layers: layers(who.art, 'rest', false) }, extra, now && extra.live ? { layers: layers(who.art, s.shape, s.blink) } : {});
     };
     const rows = s.chat.map((m) => row(m.id, { shown: m.text }));
-    if (s.sid) rows.push(row(s.sid, { live: 'live', shown: s.text.slice(0, s.at + 1), unshown: s.text.slice(s.at + 1) }));
+    if (s.sid) rows.push(row(s.sid, { live: 'live', shown: timeline.text.slice(0, s.at + 1), unshown: timeline.text.slice(s.at + 1) }));
     else if (s.typing) rows.push(row(s.typing, { typing: true, talking: false }));
     const low = Math.min.apply(null, blips.concat([0])), high = Math.max.apply(null, blips.concat([0]));
     const toggle = (value, key) => (value === key ? 'on' : '');
     const rulesOut = {};
     RULES.forEach((b) => { rulesOut[b[0]] = v.rules[b[0]]; });
     const fxOut = FX.filter((f) => v.fx[f[0]] > 0).map((f) => ({ type: f[0], amount: v.fx[f[0]] }));
-    const file = { schema_version: 2, kind: 'voice', id: 'voice-' + v.id, seed: 42, source: { tone: v.wave }, blip_fx: fxOut, line_fx: { type: v.line, amount: s.depth }, rules: rulesOut };
+    const source = v.wave === 'syllable' ? { syllables: ['ba.wav', 'da.wav', 'ko.wav', 'mi.wav', 'shu.wav'] } : { tone: v.wave };
+    const file = { schema_version: 2, kind: 'voice', id: 'voice-' + v.id, seed: 42, source, personality: v.personality, size: v.size, consonants: v.consonant, sing: v.sing, blip_fx: fxOut, line_fx: { type: v.line, amount: s.depth }, rules: rulesOut };
+    const tagged = [timeline.style.whisper ? 'whisper' : '', timeline.style.shout ? 'shout' : '', timeline.kind === 'plain' ? '' : timeline.kind, v.sing ? 'singing' : ''].filter(Boolean);
     return {
       dir: s.dir,
       dirs: [['a','Workbench'],['b','Timeline'],['c','Cast']].map((d) => ({ label: d[1], on: s.dir === d[0], cls: toggle(s.dir, d[0]), pick: () => this.setState({ dir: d[0] }) })),
-      tabs: [['sound','Sound'],['rules','Rules'],['api','API']].map((t) => ({ label: t[1], on: s.tab === t[0], cls: toggle(s.tab, t[0]), pick: () => this.setState({ tab: t[0] }) })),
-      tabSound: s.tab === 'sound', tabRules: s.tab === 'rules', tabApi: s.tab === 'api',
+      tabs: [['sound','Sound'],['rules','Rules'],['dialogue','Dialogue'],['api','API']].map((t) => ({ label: t[1], on: s.tab === t[0], cls: toggle(s.tab, t[0]), pick: () => this.setState({ tab: t[0] }) })),
+      tabSound: s.tab === 'sound', tabRules: s.tab === 'rules', tabApi: s.tab === 'api', tabDialogue: s.tab === 'dialogue',
       cast: s.voices.map((x) => {
         const live = x.id === s.vid, talking = x.id === s.sid;
         return { name: x.name, tag: x.tag, on: live, cls: live ? 'on' : '', layers: layers(x.art, talking ? s.shape : 'rest', talking && s.blink), pick: () => this.pick(x.id) };
@@ -561,8 +712,8 @@ class Component extends DCLogic {
       name: v.name,
       face: layers(v.art, s.sid === v.id ? s.shape : 'rest', s.sid === v.id && s.blink),
       soloLive: s.sid === v.id ? 'live' : '',
-      soloShown: s.sid === v.id ? s.text.slice(0, s.at + 1) : s.line,
-      soloGhost: s.sid === v.id ? s.text.slice(s.at + 1) : '',
+      soloShown: s.sid === v.id ? timeline.text.slice(0, s.at + 1) : timeline.text,
+      soloGhost: s.sid === v.id ? timeline.text.slice(s.at + 1) : '',
       rows: rows.reverse(),
       empty: rows.length === 0,
       event: s.event,
@@ -588,9 +739,24 @@ class Component extends DCLogic {
       depth: s.depth,
       depthShow: Math.round(s.depth * 100) + '%',
       setDepth: (e) => this.setState({ depth: Number(e.target.value) }, () => this.applyLine()),
-      moods: [['angry','Angrier'],['nervous','Nervous'],['old','Older'],['small','Smaller']].map((m) => ({ label: m[1], pick: () => this.mood(m[0]) })),
+      lineStyle: tagged.join(' / '),
+      sourceNote: v.wave === 'syllable' ? 'Faked here. The real thing plays your own recorded syllables.' : 'Try Syllables for speech-like gibberish.',
+      personalities: Object.keys(PERSONALITY).map((k) => ({ label: PERSONALITY[k].label, on: v.personality === k, cls: toggle(v.personality, k), pick: () => this.edit((x) => { x.personality = k; }) })),
+      personalityNote: PERSONALITY[v.personality].note,
+      size: v.size,
+      sizeShow: v.size.toFixed(2),
+      setSize: (e) => { const value = Number(e.target.value); this.edit((x) => { x.size = value; }); },
+      consonant: v.consonant,
+      consonantShow: Math.round(v.consonant * 100) + '%',
+      setConsonant: (e) => { const value = Number(e.target.value); this.edit((x) => { x.consonant = value; }); },
+      singCls: v.sing ? 'on' : '',
+      singOn: v.sing,
+      toggleSing: () => this.edit((x) => { x.sing = !x.sing; }),
+      examples: EXAMPLES.map((text) => ({ text, pick: () => this.tryLine(text) })),
+      tagHelp: gdTokens('[#whisper]        # quiet, breathy\n[#shout]          # loud, higher\n[#mood=nervous]   # personality for one line'),
+      dmHelp: gdTokens('[wait=0.5]        # pause\n[speed=2]         # faster\n[[Hi|Hello]]      # random pick\n{{player_name}}   # variable\n[b]bold[/b]       # BBCode, no sound effect\n[next=auto]       # ignored by Babble'),
       rules: RULES.map((b) => ({ label: b[1], min: b[2], max: b[3], step: b[4], value: v.rules[b[0]], show: v.rules[b[0]], set: (e) => { const value = Number(e.target.value); this.edit((x) => { x.rules[b[0]] = value; }); } })),
-      snippet: gdTokens('# Load once, then talk\nvar voice = BabbleVoice.load("res://voices/' + v.id + '.json")\n\n# One signal per letter, in time with the sound\nbabble.mouth.connect(portrait.set_mouth)\nbabble.letter.connect(box.reveal_to)\n\nbabble.say("' + s.line.replace(/"/g, '\\"').slice(0, 28) + '", voice)\nawait babble.finished'),
+      snippet: gdTokens('# With Dialogue Manager: Babble follows the label\nbabble.cast = {"' + v.name + '": BabbleVoice.load("res://voices/' + v.id + '.json")}\nbabble.follow(balloon.dialogue_label)\nbabble.mouth.connect(portrait.set_mouth)\n\n# Without it: Babble keeps its own time\nvar voice = babble.cast["' + v.name + '"]\nbabble.say("' + timeline.text.replace(/"/g, '\\"').slice(0, 28) + '", voice)\nawait babble.finished'),
       json: jsonTokens(JSON.stringify(file, null, 2)),
       path: 'res://voices/' + v.id + '.json',
       count: timeline.letters.length,
@@ -658,7 +824,7 @@ class App extends Component {
           </div>
         </section>
         <section class="panel time" aria-label="Line timeline">
-          <div class="head">TIMELINE<span style="color:#819796">letters / pitch / mouth</span></div>
+          <div class="head">TIMELINE<span style="color:#819796">letters / pitch / mouth</span><span class="style">${r.lineStyle}</span></div>
           <div class="body"><div class="lanes">
             ${r.letters.map((l) => html`<div class=${'col ' + l.cls}>
               <div class="char">${l.c}</div>
@@ -672,15 +838,25 @@ class App extends Component {
           <div class="body">
             ${r.tabSound ? html`
               <div class="sect"><h3>BLIP SOURCE</h3><div class="pills">${r.waves.map(Pill)}</div>
-                <p class="note">Samples and recorded syllables would sit here too.</p></div>
+                <p class="note">${r.sourceNote}</p></div>
+              <div class="sect"><h3>PERSONALITY</h3><div class="pills">${r.personalities.map(Pill)}</div><p class="note">${r.personalityNote}</p></div>
+              <div class="sect"><h3>BODY</h3>
+                <label class="row"><span>Size</span><input type="range" min="0.5" max="2" step="0.01" value=${r.size} onInput=${r.setSize} /><b>${r.sizeShow}</b></label>
+                <label class="row"><span>Consonants</span><input type="range" min="0" max="1" step="0.01" value=${r.consonant} onInput=${r.setConsonant} /><b>${r.consonantShow}</b></label>
+                <div class="pills" style="margin-top:6px"><button type="button" class=${'btn ' + r.singCls} aria-pressed=${r.singOn} onClick=${r.toggleSing}>Sing to the beat</button></div></div>
               <div class="sect"><h3>BLIP FX</h3>
                 ${r.fx.map((f) => html`<div class="fx">${Pill(f)}<input type="range" aria-label=${f.label + ' amount'} min="0" max="1" step="0.01" value=${f.amount} onInput=${f.set} /></div>`)}</div>
               <div class="sect"><h3>LINE FX (LIVE)</h3><div class="pills">${r.lineFx.map(Pill)}</div>
                 <label class="row" style="margin-top:6px"><span>Amount</span><input type="range" min="0" max="1" step="0.01" value=${r.depth} onInput=${r.setDepth} /><b>${r.depthShow}</b></label>
                 <p class="note">Drag Amount while a line is speaking.</p></div>
-              <div class="sect"><h3>MOODS</h3><div class="pills">${r.moods.map((m) => html`<button type="button" class="btn" onClick=${m.pick}>${m.label}</button>`)}</div></div>
             ` : null}
             ${r.tabRules ? r.rules.map((x) => html`<label class="row"><span>${x.label}</span><input type="range" min=${x.min} max=${x.max} step=${x.step} value=${x.value} onInput=${x.set} /><b>${x.show}</b></label>`) : null}
+            ${r.tabDialogue ? html`
+              <div class="sect"><h3>TRY A LINE</h3>${r.examples.map((x) => html`<button type="button" class="ex" onClick=${x.pick}>${x.text}</button>`)}
+                <p class="note">Same text as a .dialogue file. Type your own in the box under the stage.</p></div>
+              <div class="sect"><h3>BABBLE ADDS</h3><${Code} parts=${r.tagHelp} /></div>
+              <div class="sect"><h3>DIALOGUE MANAGER DOES</h3><${Code} parts=${r.dmHelp} /></div>
+            ` : null}
             ${r.tabApi ? html`
               <div class="sect"><h3>USE IT (PROPOSED)</h3><${Code} parts=${r.snippet} /></div>
               <div class="sect"><h3>VOICE FILE</h3><${Code} parts=${r.json} /></div>
