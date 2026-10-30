@@ -42,6 +42,11 @@ a{color:#A4DDDB}a:hover{color:#EBEDE9}
 .px{shape-rendering:crispEdges;display:block}
 .chat{display:flex;flex-direction:column-reverse;gap:10px;padding:12px;background:#151D28}
 .empty{color:#819796;text-align:center;margin:auto}
+.btn.mini{font-family:Tiny5,monospace;font-size:16px;padding:0 8px;min-height:24px}
+.solo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:16px;background:#151D28}
+.solo svg{width:192px;height:192px;flex:none}
+.solo .who{font-size:18px;text-align:center}
+.solo .bubble{width:100%;max-width:640px;text-align:center}
 .msg{display:flex;gap:8px;align-items:flex-end;max-width:min(560px,92%)}
 .msg.mine{align-self:flex-end;flex-direction:row-reverse}
 .msg svg{width:64px;height:64px;flex:none}
@@ -217,7 +222,7 @@ function plan(v, text) {
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { dir: 'a', tab: 'sound', voices: START(), vid: 'robot', line: 'Hello! Are you sure about this, captain?', depth: 1, at: -1, speaking: false, shape: 'rest', blink: false, event: 'Press Say.', history: [], chat: [], typing: null, sid: null, text: '' };
+    this.state = { dir: 'a', stage: 'chat', tab: 'sound', voices: START(), vid: 'robot', line: 'Hello! Are you sure about this, captain?', depth: 1, at: -1, speaking: false, shape: 'rest', blink: false, event: 'Press Say.', history: [], chat: [], typing: null, sid: null, text: '' };
     this.nodes = [];
     this.timer = null;
     this.again = null;
@@ -487,7 +492,7 @@ class Component extends DCLogic {
     this.cancel();
     this.setState({ vid: id, at: -1, speaking: false, sid: null, typing: null, shape: 'rest', blink: false, event: 'Press Say.' }, () => {
       this.applyLine();
-      if (this.state.dir === 'c') this.speak(id, this.state.line);
+      if (this.state.dir === 'c') this.speak(id, this.state.line, null, this.state.stage === 'chat');
     });
   }
 
@@ -550,12 +555,24 @@ class Component extends DCLogic {
         const live = x.id === s.vid, talking = x.id === s.sid;
         return { name: x.name, tag: x.tag, on: live, cls: live ? 'on' : '', layers: layers(x.art, talking ? s.shape : 'rest', talking && s.blink), pick: () => this.pick(x.id) };
       }),
+      stages: [['chat','Chat'],['solo','Solo']].map((d) => ({ label: d[1], on: s.stage === d[0], cls: toggle(s.stage, d[0]), pick: () => { this.stopAll('Press Say.'); this.setState({ stage: d[0] }); } })),
+      solo: s.stage === 'solo',
+      chatMode: s.stage === 'chat',
+      name: v.name,
+      face: layers(v.art, s.sid === v.id ? s.shape : 'rest', s.sid === v.id && s.blink),
+      soloLive: s.sid === v.id ? 'live' : '',
+      soloShown: s.sid === v.id ? s.text.slice(0, s.at + 1) : s.line,
+      soloGhost: s.sid === v.id ? s.text.slice(s.at + 1) : '',
       rows: rows.reverse(),
       empty: rows.length === 0,
       event: s.event,
       line: s.line,
       setLine: (e) => this.setState({ line: e.target.value, at: -1 }),
-      say: () => this.sayWithReply(),
+      say: () => {
+        if (s.stage === 'chat') return this.sayWithReply();
+        this.cancel();
+        this.speak(s.vid, s.line, null, false);
+      },
       chat: () => this.setState({ chat: [] }, () => this.play(SCENE)),
       skip: () => { if (s.speaking) this.finish(true); },
       stop: () => this.stopAll('Stopped.'),
@@ -610,8 +627,15 @@ class App extends Component {
           </div></div>
         </section>
         <section class="panel stage" aria-label="Stage">
-          <div class="head">STAGE</div>
-          <div class="body chat">
+          <div class="head">STAGE<span class="spacer"></span>
+            ${r.stages.map((d) => html`<button type="button" class=${'btn mini ' + d.cls} aria-pressed=${d.on} onClick=${d.pick}>${d.label}</button>`)}
+          </div>
+          ${r.solo ? html`<div class="body solo">
+            <svg class="px" viewBox="0 0 16 16" role="img" aria-label=${r.name}>${r.face.map((l) => html`<path fill=${l.fill} d=${l.d} />`)}</svg>
+            <div class="who">${r.name}</div>
+            <div class=${'bubble ' + r.soloLive}>${r.soloShown}<span class="ghost">${r.soloGhost}</span></div>
+          </div>` : null}
+          ${r.chatMode ? html`<div class="body chat">
             ${r.rows.map((m) => html`<div class=${'msg ' + m.cls}>
               <${Face} layers=${m.layers} />
               <div style="min-width:0">
@@ -623,12 +647,12 @@ class App extends Component {
               </div>
             </div>`)}
             ${r.empty ? html`<p class="empty">Press Chat to play a scene, or type a line and press Say.</p>` : null}
-          </div>
+          </div>` : null}
           <div class="event">${r.event}</div>
           <div class="say">
             <input type="text" aria-label="Test line" value=${r.line} onInput=${r.setLine} />
             <button type="button" class="btn go" onClick=${r.say}>Say</button>
-            <button type="button" class="btn go" onClick=${r.chat}>Chat</button>
+            ${r.chatMode ? html`<button type="button" class="btn go" onClick=${r.chat}>Chat</button>` : null}
             <button type="button" class="btn" onClick=${r.skip}>Skip</button>
             <button type="button" class="btn" onClick=${r.stop}>Stop</button>
           </div>
